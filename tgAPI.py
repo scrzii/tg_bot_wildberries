@@ -48,27 +48,55 @@ def send_message(access_token: str, chat_id: str, text: str) -> dict:
     )
 
 
+def normalize(messages: list) -> list:
+    """
+    this function normalizes message list to format:
+    [{
+        "user_id": user id,
+        "message_id": message id
+        "text": message text (non-text messages will be ignored)
+    }, ...]
+    :param messages: your message list
+    :return: normalized message list
+    """
+    result_list = []
+    for message in messages:
+        if "message" not in message or "text" not in message["message"]:  # If message is
+            # not correct text message it will be ignored
+            continue
+        result_list.append({
+            "user_id": message["message"]["from"]["id"],
+            "message_id": message["update_id"],
+            "text": message["message"]["text"]
+        })
+    return result_list
+
+
 # Demonstration of working the module
 if __name__ == "__main__":
     config_path = "config.json5"
     config = json5.load(open(config_path, "r"))
-    token = config["access_token"]
-    interval = float(config["messages_check_interval"])
+    token = config["access_token"]  # Access token
+    interval = float(config["messages_check_interval"])  # Checking interval from config
+
     while True:
-        response = get_updates(token)
-        updates = response["result"] if response["ok"] else []
+        response = get_updates(token)  # Getting messages/callbacks from chats
+        updates = response["result"] if response["ok"] else []  # updates is messages only
         if len(updates) == 0:
             continue
-        t_offset = updates[-1]["update_id"]
+
+        t_offset = updates[-1]["update_id"]  # Last message offset
         get_updates(token, int(t_offset) + 1)  # Marking as read all messages
-        message = updates[0]
-        if "message" in message and "text" in message["message"]:
-            user_id = message["message"]["from"]["id"]
-            t_text = message["message"]["text"]
+        t_message = updates[0]  # Tracking 1st message only
+
+        if "message" in t_message and "text" in t_message["message"]:
+            user_id = t_message["message"]["from"]["id"]
+            t_text = t_message["message"]["text"]
             result = send_message(token, user_id, "Ваше сообщение: " + t_text)
             if result["ok"]:
                 print("SENDING SUCCESS")
             else:
                 print(f"PROBLEM:\n{result}")
             break
-        time.sleep(interval)
+
+        time.sleep(interval)  # Waiting next update
