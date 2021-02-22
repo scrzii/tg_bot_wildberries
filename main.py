@@ -97,6 +97,8 @@ def one_message_handler(message: dict):
     text = message["text"]
     if text == "id":  # User wants to get self id
         fast_send(user_id, user_id)
+    elif user_id != head_admin:
+        fast_send(user_id, "Вам не доступны команды кроме <<id>>")
     elif text == "contacts":  # User wants to see contact list
         fast_send(user_id, f"Контакты: {', '.join(contacts)}")
     else:  # Command handler
