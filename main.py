@@ -3,7 +3,7 @@ import threading
 import json5
 
 import tgAPI
-import parser
+import wildberriesParser
 
 # Initializing
 config_path = "config.json5"
@@ -33,7 +33,7 @@ def tvs_handler():
     while True:
         new_update = []
         try:
-            new_update = parser.get_televisions()  # Getting new data about TVs
+            new_update = wildberriesParser.get_televisions()  # Getting new data about TVs
         except Exception:
             error_message = "При обновлении товаров произошла ошибка"
             print(error_message)
