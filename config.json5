@@ -1,0 +1,7 @@
+{
+  "messages_check_interval": 2,  // Seconds between updates messages
+  "access_token": "1676592005:AAHSZM0-_iTGa3Qeoz8ZNGgaCQiaBMzUYzY",  // Access token of telegram bot
+  "refresh_interval": 300,  // Seconds between updates wildberries page
+  "head_admin": "scrzii",  // Telegram username of head admin of bot (without "@")
+  "contacts_for_sending": []  // List of ids/usernames for sending
+}
