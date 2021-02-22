@@ -16,7 +16,8 @@ message_check_interval = float(config["messages_check_interval"])  # Interval (s
 refresh_interval = float(config["refresh_interval"])  # Interval (seconds) between updating wildberries TVs
 access_token = config["access_token"]
 head_admin = config["head_admin"]
-contacts.append(head_admin)  # Adding head admin to sending notices
+if head_admin not in contacts:
+    contacts.append(head_admin)  # Adding head admin to sending notices
 
 
 def update_data():
@@ -34,7 +35,7 @@ def tvs_handler():
         new_update = []
         try:
             new_update = wildberriesParser.get_televisions()  # Getting new data about TVs
-        except Exception:
+        except:
             error_message = "При обновлении товаров произошла ошибка"
             print(error_message)
             tgAPI.send_message(access_token, head_admin, error_message)
@@ -56,30 +57,83 @@ def tvs_handler():
                 })
                 tvs[url]["price"] = tv["price"]  # Update price in serial data
 
-        # Generating text notice about new prices
-        message_text = "На некоторые товары упала цена\n\n"
-        for tv_r in changed_tvs:
-            tv = tv_r["tv"]  # TV's dict
-            old_price = tv_r["prev_price"]  # Old price
-            url = tv_r["url"]
+        if changed_tvs:
+            # Generating text notice about new prices
+            message_text = "На некоторые товары упала цена\n\n"
+            for tv_r in changed_tvs:
+                tv = tv_r["tv"]  # TV's dict
+                old_price = tv_r["prev_price"]  # Old price
+                url = tv_r["url"]
 
-            message_text += "Товар: %s\n" % url
-            message_text += tv["description"] + "\n\n"
-            message_text += "Старая цена: %s Р\nНовая цена: %s Р" % (old_price, tv["price"])
+                message_text += "Товар: %s\n" % url
+                message_text += tv["description"] + "\n\n"
+                message_text += "Старая цена: %s Р\nНовая цена: %s Р" % (old_price, tv["price"])
 
-        for contact in contacts:  # Sending notice
-            tgAPI.send_message(access_token, contact, message_text)
+            for contact in contacts:  # Sending notice
+                try:
+                    tgAPI.send_message(access_token, contact, message_text)
+                except:
+                    print(f"Ошибка при отправке сообщения: user_id: {contact}")
 
         update_data()  # Updating serial data in file
         time.sleep(refresh_interval)
 
 
+def reply(message: dict, text: str):
+    """
+    this function replies text to user's message
+    :param message: message dict
+    :param text: replying text
+    """
+    tgAPI.send_message(access_token, message["user_id"], text)
+
+
+def one_message_handler(message: str):
+    """
+    this is result of refactoring, this function handles single message of user
+    :param message: message dict
+    """
+    user_id = message["user_id"]
+    text = message["text"]
+    if text == "id":  # User wants to get self id
+        reply(message, message["user_id"])
+    elif text == "contacts":  # User wants to see contact list
+        reply(message, f"Контакты: {', '.join(contacts)}")
+    else:  # Command handler
+        splitted = text.split()  # Splitting user's string
+        if len(splitted) != 2:
+            tgAPI.reply(access_token, "Неправильное количество аргументов команды")
+            return
+        command, arg = splitted
+        if command == "remove":  # Removing contact arg
+            if arg not in contacts:
+                reply(message, f"Пользователь с id {arg} не найден")  # Contact arg not found
+                return
+            contacts.pop(arg)
+            reply(message, f"Пользователь с id {arg} удален из рассылки")
+        elif command == "add":  # Adding new contact arg
+            contacts.append(arg)
+            reply(message, f"Пользователь с id {arg} добавлен в рассылку")
+        else:  # Command not found
+            reply(message, f"Команда {command} не найдена")
+
+
 def bot_handler():
     """
-    TODO
-    :return:
+    bot handler for messages from users
     """
+    while True:
+        try:
+            new_messages = tgAPI.get_updates()
+            messages = tgAPI.normalize(new_messages["result"])
+            for message in messages:
+                one_message_handler(message)
+        except:
+            print("Ошибка при чтении сообщений")  # Error with reading messages
+        time.sleep(message_check_interval)
 
 
 parser_thread = threading.Thread(target=tvs_handler)  # Launching parser in single thread
 parser_thread.start()
+bot_thread = threading.Thread(target=bot_handler)
+bot_thread.start()

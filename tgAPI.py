@@ -14,8 +14,9 @@ def request_api(method: str, access_token: str, **data) -> dict:
     :param data: method data ("chat_id", "user_id", etc)
     :return: JSON5-object
     """
-    response = urlopen(f"{API_URL}{access_token}/{method}?" + urlencode(data)).read()  # Loading method
-    return json5.loads(response)  # Converting to JSON5 format
+    url = f"{API_URL}{access_token}/{method}?" + urlencode(data)
+    req_response = urlopen(url).read()  # Loading method
+    return json5.loads(req_response)  # Converting to JSON5 format
 
 
 def get_updates(access_token: str, offset: int=0) -> dict:

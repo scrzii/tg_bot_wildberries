@@ -2,5 +2,5 @@
   "messages_check_interval": 2,  // Seconds between updates messages
   "access_token": "1676592005:AAHSZM0-_iTGa3Qeoz8ZNGgaCQiaBMzUYzY",  // Access token of telegram bot
   "refresh_interval": 300,  // Seconds between updates wildberries pages
-  "head_admin": "scrzii",  // Telegram username of head admin of bot (without "@")
+  "head_admin": "574200941",  // Telegram id of head admin of bot
 }
