@@ -66,8 +66,8 @@ def normalize(messages: list) -> list:
             # not correct text message it will be ignored
             continue
         result_list.append({
-            "user_id": message["message"]["from"]["id"],
-            "message_id": message["update_id"],
+            "user_id": str(message["message"]["from"]["id"]),
+            "message_id": str(message["update_id"]),
             "text": message["message"]["text"]
         })
     return result_list

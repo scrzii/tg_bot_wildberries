@@ -66,8 +66,8 @@ def tvs_handler():
                 url = tv_r["url"]
 
                 message_text += "Товар: %s\n" % url
-                message_text += tv["description"] + "\n\n"
-                message_text += "Старая цена: %s Р\nНовая цена: %s Р" % (old_price, tv["price"])
+                message_text += tv["description"] + "\n"
+                message_text += "Старая цена: %s Р\nНовая цена: %s Р\n\n" % (old_price, tv["price"])
 
             for contact in contacts:  # Sending notice
                 try:
@@ -79,16 +79,16 @@ def tvs_handler():
         time.sleep(refresh_interval)
 
 
-def reply(message: dict, text: str):
+def fast_send(user_id: str, text: str):
     """
     this function replies text to user's message
-    :param message: message dict
-    :param text: replying text
+    :param user_id: message dict
+    :param text: sending text
     """
-    tgAPI.send_message(access_token, message["user_id"], text)
+    tgAPI.send_message(access_token, user_id, text)
 
 
-def one_message_handler(message: str):
+def one_message_handler(message: dict):
     """
     this is result of refactoring, this function handles single message of user
     :param message: message dict
@@ -96,26 +96,29 @@ def one_message_handler(message: str):
     user_id = message["user_id"]
     text = message["text"]
     if text == "id":  # User wants to get self id
-        reply(message, message["user_id"])
+        fast_send(user_id, user_id)
     elif text == "contacts":  # User wants to see contact list
-        reply(message, f"Контакты: {', '.join(contacts)}")
+        fast_send(user_id, f"Контакты: {', '.join(contacts)}")
     else:  # Command handler
         splitted = text.split()  # Splitting user's string
         if len(splitted) != 2:
-            tgAPI.reply(access_token, "Неправильное количество аргументов команды")
+            fast_send(user_id, "Неправильное количество аргументов команды")
             return
         command, arg = splitted
         if command == "remove":  # Removing contact arg
             if arg not in contacts:
-                reply(message, f"Пользователь с id {arg} не найден")  # Contact arg not found
+                fast_send(user_id, f"Пользователь с id {arg} не найден")  # Contact arg not found
                 return
             contacts.pop(arg)
-            reply(message, f"Пользователь с id {arg} удален из рассылки")
+            fast_send(user_id, f"Пользователь с id {arg} удален из рассылки")
         elif command == "add":  # Adding new contact arg
-            contacts.append(arg)
-            reply(message, f"Пользователь с id {arg} добавлен в рассылку")
+            if arg not in contacts:
+                contacts.append(arg)
+                fast_send(user_id, f"Пользователь с id {arg} добавлен в рассылку")
+            else:
+                fast_send(user_id, f"Пользователь с id {arg} уже есть в списке рассылки")
         else:  # Command not found
-            reply(message, f"Команда {command} не найдена")
+            fast_send(user_id, f"Команда {command} не найдена")
 
 
 def bot_handler():
@@ -124,8 +127,10 @@ def bot_handler():
     """
     while True:
         try:
-            new_messages = tgAPI.get_updates()
-            messages = tgAPI.normalize(new_messages["result"])
+            new_messages = tgAPI.get_updates(access_token)["result"]
+            messages = tgAPI.normalize(new_messages)
+            if new_messages:
+                tgAPI.get_updates(access_token, int(messages[-1]["message_id"]) + 1)
             for message in messages:
                 one_message_handler(message)
         except:
